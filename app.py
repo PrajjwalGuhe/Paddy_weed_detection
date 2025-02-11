@@ -14,13 +14,13 @@ def setup_cfg(config_path, weights_path):
     cfg.merge_from_file(config_path)
     cfg.MODEL.WEIGHTS = weights_path
     cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # Set threshold for this run
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.3  # Set threshold for this run
     return cfg
 
 def visualize_output(image, outputs, metadata):
     """Visualize predictions with reduced opacity red masks and add labels with confidence scores."""
     # Ensure metadata has thing_classes
-    label_classes = metadata.get("thing_classes", ["Weed", "Background", "Paddy", "weed"])
+    label_classes = metadata.get("thing_classes", ["weed", "Paddy"])
     if not label_classes:
         raise ValueError("Metadata does not contain 'thing_classes'. Check dataset registration.")
 
@@ -28,7 +28,7 @@ def visualize_output(image, outputs, metadata):
     instances = outputs["instances"]
     pred_classes = instances.pred_classes.cpu().numpy()
     pred_scores = instances.scores.cpu().numpy()
-    selected_indices = np.where(np.isin(pred_classes, [0, 3]))[0]
+    selected_indices = np.where(np.isin(pred_classes, [0,1]))[0]
     selected_instances = instances[selected_indices]
 
     # Extract masks and combine them
@@ -77,6 +77,9 @@ def run_inference(cfg, input_image):
     # Perform inference
     outputs = predictor(input_image)
 
+    print("Predicted Classes:", outputs["instances"].pred_classes)  # Check detected classes
+    print("Confidence Scores:", outputs["instances"].scores) 
+
     # Visualize the results
     metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
     output_image = visualize_output(input_image, outputs, metadata)
@@ -100,8 +103,8 @@ def main():
             return
 
         # Set up config and model
-        config_path = "D:/Paddy_weed_detection/utils/config_R50.yaml"
-        weights_path = "D:/Paddy_weed_detection/utils/model_final_R50.pth"
+        config_path = "/home/prajjwal/Paddy_weed_detection/config.yaml"
+        weights_path = "/home/prajjwal/Paddy_weed_detection/output/model_0013999.pth"
         if not os.path.exists(config_path):
             st.error(f"Config file not found: {config_path}")
             return
